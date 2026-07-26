@@ -1,64 +1,59 @@
+require('dotenv').config();
+
 const mineflayer = require('mineflayer');
+const config = require('./config');
+
+let bot;
 
 function createBot() {
-    const bot = mineflayer.createBot({
-        host: 'Faiz_026.aternos.me',
-        port: 36389,
-        username: 'FaizBot',
-        version: '1.21.11'
+    bot = mineflayer.createBot({
+        host: config.host,
+        port: config.port,
+        username: config.username,
+        version: config.version
     });
 
-    bot.on('login', () => {
-        console.log('✅ Bot logged in!');
+    bot.once('login', () => {
+        console.log('✅ Logged in');
     });
 
-    bot.on('spawn', () => {
-        console.log('✅ Bot joined the world!');
-        bot.chat('Hello! I am online.');
+    bot.once('spawn', () => {
+        console.log('✅ Spawned');
 
-        // Anti-AFK: Jump every 30 seconds
+        // Anti-AFK
         setInterval(() => {
+            if (!bot || !bot.entity) return;
+
             bot.setControlState('jump', true);
 
             setTimeout(() => {
                 bot.setControlState('jump', false);
-            }, 500);
+            }, 300);
 
-        }, 30000);
+        }, 30000); // Jump every 30 seconds
     });
 
     bot.on('chat', (username, message) => {
         if (username === bot.username) return;
 
-        console.log(`${username}: ${message}`);
-
-        if (message === '!jump') {
-            bot.setControlState('jump', true);
-
-            setTimeout(() => {
-                bot.setControlState('jump', false);
-            }, 500);
-        }
+        console.log(`[CHAT] ${username}: ${message}`);
     });
 
-    ;bot.on('error', (err) => {
-    console.error('❌ ERROR:', err);
-});
+    bot.on('kicked', (reason) => {
+        console.log('❌ Kicked from server');
+        console.log(reason);
+    });
 
-bot.on('kicked', (reason, loggedIn) => {
-    console.log('❌ KICKED!');
-    console.log('Reason:', reason);
-    console.log('Logged in:', loggedIn);
-});
+    bot.on('error', (err) => {
+        console.log('❌ Error:', err.message);
+    });
 
-bot.on('end', (reason) => {
-    console.log('🔄 Connection ended.');
-    console.log('Reason:', reason);
+    bot.on('end', () => {
+        console.log('🔄 Disconnected. Reconnecting in 10 seconds...');
 
-    setTimeout(() => {
-        console.log('Trying to reconnect...');
-        createBot();
-    }, 10000);
+        setTimeout(() => {
+            createBot();
+        }, 10000);
     });
 }
 
